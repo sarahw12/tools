@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monte Carlo Retirement Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            position: relative;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #1e293b; font-size: 2.5rem; margin-bottom: 8px; font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .subtitle { color: #64748b; margin-bottom: 30px; font-size: 1.1rem; }
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+        .mode-button {
+            flex: 1;
+            padding: 12px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            color: #475569;
+        }
+        .mode-button:hover { border-color: #667eea; color: #667eea; }
+        .mode-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        .input-panel { display: none; }
+        .input-panel.active { display: block; }
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 24px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+        /* Australian Super rates table styling */
+        .age-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        .age-table th, .age-table td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(15,23,42,0.06);
+        }
+        .age-table thead th {
+            background: #3b82f6; /* existing blue */
+            color: white;
+            font-weight: 700;
+        }
+        .age-table tbody tr:nth-child(odd) {
+            background: rgba(59,130,246,0.06); /* slightly lighter blue */
+        }
+        .age-table tbody tr:nth-child(even) {
+            background: transparent;
+        }
+        .age-table input[type="number"] {
+            padding: 6px 8px;
+            height: 32px;
+            box-sizing: border-box;
+        }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; color: #475569; margin-bottom: 8px; font-size: 0.9rem; }
+        input {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        select#returnModel {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            background: #f59e0b; /* orange */
+            color: #ffffff; /* white text */
+            appearance: none;
+            -webkit-appearance: none;
+            transition: border-color 0.2s, box-shadow 0.12s;
+            padding-right: 44px; /* space for custom arrow */
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='%23ffffff' d='M5 7l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 12px 12px;
+        }
+        input:focus { outline: none; border-color: #667eea; }
+        .hint { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+        .age-table {
+            width: 100%;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            border-collapse: collapse;
+        }
+        .age-table th, .age-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .age-table th { background: #f8fafc; font-weight: 600; color: #475569; }
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 30px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        button:active { transform: translateY(0); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+        .inflation-notice {
+            background: #fef3c7;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid #f59e0b;
+        }
+        .inflation-notice p { color: #92400e; margin: 0; font-size: 0.95rem; }
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card { padding: 24px; border-radius: 12px; border: 3px solid; }
+        .stat-card.success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-color: #10b981;
+        }
+        .stat-card.median {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-color: #3b82f6;
+        }
+        .stat-card.failure {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-color: #ef4444;
+        }
+        .stat-card.warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: #f59e0b;
+        }
+        .stat-label { font-size: 0.9rem; font-weight: 600; color: #475569; margin-bottom: 8px; }
+        .stat-value { font-size: 2.5rem; font-weight: 700; margin-bottom: 4px; }
+        .stat-card.success .stat-value { color: #059669; }
+        .stat-card.median .stat-value { color: #2563eb; }
+        .stat-card.failure .stat-value { color: #dc2626; }
+        .stat-card.warning .stat-value { color: #d97706; }
+        .stat-detail { font-size: 0.8rem; color: #64748b; }
+        .distribution { background: #f8fafc; padding: 24px; border-radius: 12px; margin-bottom: 30px; }
+        .distribution h3 { color: #1e293b; margin-bottom: 20px; }
+        .percentiles {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            text-align: center;
+        }
+        .percentile-box {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+        .percentile-label { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; }
+        .percentile-value { font-size: 1.8rem; font-weight: 700; }
+        .percentile-box:nth-child(1) .percentile-value { color: #f97316; }
+        .percentile-box:nth-child(2) .percentile-value { color: #3b82f6; }
+        .percentile-box:nth-child(3) .percentile-value { color: #10b981; }
+        .chart-container {
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+        }
+        .chart-container h3 { color: #1e293b; margin-bottom: 20px; }
+        .year-success-rates {
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+        }
+        .year-success-rates h3 { color: #1e293b; margin-bottom: 8px; }
+        .subtitle-small { color: #64748b; font-size: 0.9rem; margin-bottom: 20px; }
+        .interpretation {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            padding: 24px;
+            border-radius: 12px;
+            border: 2px solid #3b82f6;
+            margin-bottom: 20px;
+        }
+        .interpretation h3 { color: #1e3a8a; margin-bottom: 16px; }
+        .interpretation p { color: #1e293b; line-height: 1.8; margin-bottom: 12px; }
+        .technical-notes {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: #64748b;
+            line-height: 1.8;
+        }
+        .technical-notes p { margin-bottom: 8px; }
+        .placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            color: #64748b;
+        }
+        .placeholder p:first-child { font-size: 1.2rem; margin-bottom: 12px; color: #475569; }
+        #resultsSection { display: none; }
+        .legend {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #475569;
+            line-height: 1.8;
+        }
+        .legend p { margin-bottom: 6px; }
+        .bmc-top-right { position: absolute; top: 20px; right: 20px; z-index: 1000; }
+        .bmc-top-right a { display: inline-block; line-height: 0; }
+        .bmc-top-right img {
+            height: 39.6px; /* 10% larger than 36px */
+            width: auto;
+            display: block;
+            border-radius: 6px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .bmc-top-right a:hover img {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+        }
+        .tooltip { display: inline-block; position: relative; cursor: help; background: #eee; color: #333; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; font-weight: 700; }
+        .tooltip:focus { outline: 2px solid #1FB6A5; }
+        .tooltip .tooltiptext { visibility: hidden; width: 260px; background-color: #111827; color: #fff; text-align: left; border-radius: 6px; padding: 8px; position: absolute; z-index: 1001; top: 28px; right: 0; font-size: 0.85rem; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .tooltip:hover .tooltiptext, .tooltip:focus .tooltiptext { visibility: visible; }
+        .model-desc { margin-top: 8px; color: #475569; font-size: 0.9rem; }
+        .disclaimer { margin-top: 18px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; color: #475569; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Monte Carlo Retirement Simulator</h1>
+        <div class="bmc-top-right">
+            <a href="https://www.buymeacoffee.com/ta73" target="_blank" rel="noopener" aria-label="Buy me a coffee">
+                <img src="bmc-button.png" alt="Buy me a coffee" onerror="this.style.display='none'">
+                <span style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Buy me a coffee</span>
+            </a>
+        </div>
+        <p class="subtitle">Explores retirement drawdowns across thousands of market scenarios. Choose Percentage Withdrawal if you’re in Australia as it includes adjustable superannuation minimum drawdown rules.</p>
+        
+        <div class="mode-toggle">
+            <button class="mode-button active" onclick="switchMode('fixed')" id="fixedModeBtn">
+                Fixed Dollar Withdrawal
+            </button>
+            <button class="mode-button" onclick="switchMode('percentage')" id="percentageModeBtn">
+                Percentage Withdrawal (Australian Super Rules)
+            </button>
+        </div>
+        
+        <div id="fixedPanel" class="input-panel active">
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Initial Balance ($)</label>
+                    <input type="number" id="initialBalance" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Annual Withdrawal ($)</label>
+                    <input type="number" id="annualWithdrawal" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Target End Balance ($)</label>
+                    <input type="number" id="targetBalance" value="0">
+                </div>
+            </div>
+        </div>
+        
+        <div id="percentagePanel" class="input-panel">
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Initial Balance ($)</label>
+                    <input type="number" id="initialBalancePct" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Starting Age</label>
+                    <input type="number" id="startingAge" value="65" min="60" max="95">
+                </div>
+                <div class="input-group">
+                    <label>Target End Balance ($)</label>
+                    <input type="number" id="targetBalancePct" value="0">
+                </div>
+            </div>
+            
+            <div style="background: #dbeafe; padding: 16px; border-radius: 8px; margin-top: 12px; border: 2px solid #3b82f6;">
+                <p style="color: #1e3a8a; margin: 0 0 12px 0; font-weight: 600;">Australian Super Minimum Withdrawal Rates:</p>
+                <table class="age-table">
+                    <thead>
+                        <tr><th>Age</th><th>Minimum %</th><th>Min $ (at start bal)</th><th>Min $ (at target bal)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>60-64</td>
+                            <td><input class="rateInput" data-min-age="60" data-max-age="64" type="number" value="4" min="4" max="100" step="0.1" style="width:64px">%</td>
+                            <td class="minStart" data-rate="4">--</td>
+                            <td class="minTarget" data-rate="4">--</td>
+                        </tr>
+                        <tr>
+                            <td>65-74</td>
+                            <td><input class="rateInput" data-min-age="65" data-max-age="74" type="number" value="5" min="5" max="100" step="0.1" style="width:64px">%</td>
+                            <td class="minStart" data-rate="5">--</td>
+                            <td class="minTarget" data-rate="5">--</td>
+                        </tr>
+                        <tr>
+                            <td>75-79</td>
+                            <td><input class="rateInput" data-min-age="75" data-max-age="79" type="number" value="6" min="6" max="100" step="0.1" style="width:64px">%</td>
+                            <td class="minStart" data-rate="6">--</td>
+                            <td class="minTarget" data-rate="6">--</td>
+                        </tr>
+                        <tr>
+                            <td>80-84</td>
+                            <td><input class="rateInput" data-min-age="80" data-max-age="84" type="number" value="7" min="7" max="100" step="0.1" style="width:64px">%</td>
+                            <td class="minStart" data-rate="7">--</td>
+                            <td class="minTarget" data-rate="7">--</td>
+                        </tr>
+                        <tr>
+                            <td>85-89</td>
+                            <td><input class="rateInput" data-min-age="85" data-max-age="89" type="number" value="9" min="9" max="100" step="0.1" style="width:64px">%</td>
+                            <td class="minStart" data-rate="9">--</td>
+                            <td class="minTarget" data-rate="9">--</td>
+                        </tr>
+                        <tr>
+                            <td>90-94</td>
+                            <td><input class="rateInput" data-min-age="90" data-max-age="94" type="number" value="11" min="11" max="100" step="0.1" style="width:64px">%</td>
+                            <td class="minStart" data-rate="11">--</td>
+                            <td class="minTarget" data-rate="11">--</td>
+                        </tr>
+                        <tr>
+                            <td>95+</td>
+                            <td><input class="rateInput" data-min-age="95" data-max-age="200" type="number" value="14" min="14" max="100" step="0.1" style="width:64px">%</td>
+                            <td class="minStart" data-rate="14">--</td>
+                            <td class="minTarget" data-rate="14">--</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="color: #475569; margin: 12px 0 0 0; font-size: 0.85rem;">Withdrawals calculated as % of balance at start of each year, increasing with age</p>
+            </div>
+        </div>
+        
+        <div class="input-grid">
+            <div class="input-group">
+                <label>Mean Return (%)</label>
+                <input type="number" id="meanReturn" value="6" step="0.5">
+            </div>
+            <div class="input-group">
+                <label>Std Deviation (%)</label>
+                <input type="number" id="stdDeviation" value="12" step="0.5">
+                <span class="hint">Typical: 10-15%</span>
+            </div>
+            <div class="input-group">
+                <label>Return Model</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <select id="returnModel">
+                        <option value="arithmetic">Arithmetic Normal</option>
+                        <option value="lognormal">Lognormal (geometric)</option>
+                        <option value="studentt">Student-t (heavy tails)</option>
+                    </select>
+                    <span class="tooltip" tabindex="0" aria-label="Return model help">?
+                        <span class="tooltiptext">
+                            <strong>Arithmetic Normal</strong>: samples year returns directly from a Normal(mean, sd) distribution (simple).
+                            <br><br>
+                            <strong>Lognormal</strong>: samples geometric returns (more realistic for long horizons). Calibrates underlying log-parameters to match entered arithmetic mean/variance where possible.
+                            <br><br>
+                            <strong>Student-t</strong>: heavy-tailed shocks for stress testing; controlled by the 'Student-t df' parameter.
+                        </span>
+                    </span>
+                </div>
+                <div id="modelDescription" class="model-desc"></div>
+            </div>
+            <div class="input-group">
+                <label>Yearly Fee (%)</label>
+                <input type="number" id="feePercent" value="0" step="0.01">
+            </div>
+            <div class="input-group">
+                <label>Student-t df</label>
+                <input type="number" id="tDf" value="5" min="2" step="1">
+                <span class="hint">Only used for Student-t model</span>
+            </div>
+            <div class="input-group">
+                <label>Inflation/CPI (%)</label>
+                <input type="number" id="inflation" value="2.5" step="0.1">
+                <span class="hint">Withdrawals increase yearly</span>
+            </div>
+            <div class="input-group">
+                <label>Years</label>
+                <input type="number" id="years" value="30">
+            </div>
+            <div class="input-group">
+                <label>Simulations</label>
+                <input type="number" id="numSimulations" value="1000" step="100">
+            </div>
+        </div>
+        
+        <div class="inflation-notice">
+            <p>
+                <strong>Inflation Adjustment:</strong> With <span id="inflationDisplay">2.5</span>% CPI, your $<span id="withdrawalDisplay">126,000</span> 
+                withdrawal will grow to $<span id="inflatedWithdrawalDisplay">--</span> by year 30 to maintain purchasing power.
+            </p>
+        </div>
+        
+        <button id="runButton" onclick="runSimulation()">Run 1,000 Simulations</button>
+        
+        <div id="resultsSection">
+            <div class="results-grid">
+                <div class="stat-card success">
+                    <div class="stat-label">Success Rate</div>
+                    <div class="stat-value" id="successRate">--</div>
+                    <div class="stat-detail" id="successDetail">--</div>
+                </div>
+                <div class="stat-card median">
+                    <div class="stat-label">Median Final Balance</div>
+                    <div class="stat-value" id="medianFinal">--</div>
+                    <div class="stat-detail">50th percentile outcome</div>
+                </div>
+                <div class="stat-card" id="failureCard">
+                    <div class="stat-label">Money Runs Out</div>
+                    <div class="stat-value" id="failureRate">--</div>
+                    <div class="stat-detail" id="failureDetail">--</div>
+                </div>
+            </div>
+            
+            <div class="distribution">
+                <h3>Final Balance Distribution</h3>
+                <div class="percentiles">
+                    <div class="percentile-box">
+                        <div class="percentile-label">10th Percentile (Worst)</div>
+                        <div class="percentile-value" id="p10">--</div>
+                    </div>
+                    <div class="percentile-box">
+                        <div class="percentile-label">50th Percentile (Median)</div>
+                        <div class="percentile-value" id="p50">--</div>
+                    </div>
+                    <div class="percentile-box">
+                        <div class="percentile-label">90th Percentile (Best)</div>
+                        <div class="percentile-value" id="p90">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Balance Range Over Time</h3>
+                <canvas id="chart"></canvas>
+                <div class="legend">
+                    <p><strong>Dark blue line:</strong> Median outcome (50% of simulations above/below)</p>
+                    <p><strong>Blue shaded area:</strong> Middle 50% of outcomes (25th-75th percentile)</p>
+                    <p><strong>Light blue area:</strong> 80% of outcomes fall within this range (10th-90th percentile)</p>
+                </div>
+            </div>
+            
+            <div class="year-success-rates">
+                <h3>Probability of Success By Year</h3>
+                <p class="subtitle-small">What % of simulations still have money left at each year</p>
+                <canvas id="successChart"></canvas>
+            </div>
+            
+            <div class="interpretation" id="interpretation">
+                <h3>What This Means</h3>
+                <div id="interpretationText"></div>
+            </div>
+            
+            <div class="technical-notes">
+                <p><strong>Technical Notes:</strong></p>
+                <p id="technicalNotes"></p>
+            </div>
+        </div>
+        
+        <div id="placeholder" class="placeholder">
+            <p>Configure your parameters above and click Run Simulations</p>
+            <p>The simulator will test your withdrawal strategy across thousands of possible market scenarios</p>
+        </div>
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> this is an exploratory tool only. I am not a financial planner and this is not advice. Results may be inaccurate or wrong. Built for my own modelling and shared in case it’s useful. Use at your own discretion.
+        </div>
+    </div>
+    
+    <script>
+        let chartInstance = null;
+        let successChartInstance = null;
+        let currentMode = 'fixed';
+        
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('fixedModeBtn').classList.toggle('active', mode === 'fixed');
+            document.getElementById('percentageModeBtn').classList.toggle('active', mode === 'percentage');
+            document.getElementById('fixedPanel').classList.toggle('active', mode === 'fixed');
+            document.getElementById('percentagePanel').classList.toggle('active', mode === 'percentage');
+            const inflationNotice = document.querySelector('.inflation-notice');
+            inflationNotice.style.display = mode === 'fixed' ? 'block' : 'none';
+            if (mode === 'percentage') {
+                updateSuperDollarTable();
+            }
+        }
+        
+        function defaultRateForAge(age) {
+            if (age < 65) return 4;
+            if (age < 75) return 5;
+            if (age < 80) return 6;
+            if (age < 85) return 7;
+            if (age < 90) return 9;
+            if (age < 95) return 11;
+            return 14;
+        }
+
+        function getAustralianMinimumRate(age) {
+            // Read custom rates from the editable table inputs and enforce government minimums
+            const inputs = document.querySelectorAll('.rateInput');
+            for (let i = 0; i < inputs.length; i++) {
+                const minAge = parseInt(inputs[i].dataset.minAge, 10);
+                const maxAge = parseInt(inputs[i].dataset.maxAge, 10);
+                if (!isNaN(minAge) && !isNaN(maxAge) && age >= minAge && age <= maxAge) {
+                    const v = parseFloat(inputs[i].value);
+                    const govMin = defaultRateForAge(age);
+                    if (!isNaN(v)) return Math.max(v, govMin);
+                    return govMin;
+                }
+            }
+
+            // Fallback to defaults if inputs not present
+            return defaultRateForAge(age);
+        }
+        
+        function randomNormal(mean, stdDev) {
+            let u1 = Math.random();
+            let u2 = Math.random();
+            let z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+            return mean + z0 * stdDev;
+        }
+
+        function randomStudentT(df) {
+            // Generates a Student-t random variable with df degrees of freedom
+            // using normal / chi-square construction
+            const z = (function() {
+                let u1 = Math.random();
+                let u2 = Math.random();
+                return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+            })();
+            // chi-square via sum of squares of df standard normals
+            let sumSq = 0;
+            for (let i = 0; i < Math.max(1, Math.floor(df)); i++) {
+                let u1 = Math.random();
+                let u2 = Math.random();
+                let zi = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                sumSq += zi * zi;
+            }
+            const scale = Math.sqrt(sumSq / df);
+            return z / scale;
+        }
+
+        function sampleReturnDecimal(meanPercent, stdDevPercent, model, tDf) {
+            // Returns a decimal return (e.g., 0.05 for 5%) sampled according to the chosen model
+            const mean = parseFloat(meanPercent) || 0;
+            const sd = parseFloat(stdDevPercent) || 0;
+            const fee = parseFloat(document.getElementById('feePercent').value) || 0;
+
+            let r = 0; // arithmetic return as percent
+            if (model === 'arithmetic') {
+                r = randomNormal(mean, sd);
+            } else if (model === 'lognormal') {
+                // Convert desired arithmetic mean/variance of (1+R) to lognormal mu/sigma
+                const m = mean / 100; // arithmetic mean of R
+                const s = sd / 100; // arithmetic std dev
+                const M = 1 + m;
+                const V = s * s;
+                // If variance is zero, degenerate
+                if (V <= 0) {
+                    r = mean;
+                } else {
+                    const sigma2 = Math.log(1 + V / (M * M));
+                    const sigma = Math.sqrt(Math.max(0, sigma2));
+                    const mu = Math.log(M) - sigma2 / 2;
+                    // sample normal Y ~ N(mu, sigma2)
+                    const y = randomNormal(mu, sigma);
+                    const X = Math.exp(y); // X = 1 + R
+                    r = (X - 1) * 100; // percent
+                }
+            } else if (model === 'studentt') {
+                const df = Math.max(2, parseFloat(tDf) || 5);
+                // student-t has variance df/(df-2) for df>2
+                const tRaw = randomStudentT(df);
+                const tVar = df > 2 ? (df / (df - 2)) : 1;
+                const scale = (sd / 100) / Math.sqrt(tVar);
+                r = mean + tRaw * (scale * 100);
+            } else {
+                r = randomNormal(mean, sd);
+            }
+
+            // Apply yearly fee (simple subtraction of percentage points)
+            const netPercent = r - fee;
+            // convert percent to decimal return
+            let retDecimal = netPercent / 100;
+            // clamp to > -1 to avoid negative balances beyond full loss
+            if (retDecimal <= -1) retDecimal = -0.999999;
+            return retDecimal;
+        }
+        
+        function formatCurrency(value) {
+            if (isNaN(value) || value === null) return '$0';
+            const abs = Math.abs(value);
+            if (abs >= 1000000) {
+                return '$' + (value / 1000000).toFixed(2) + 'M';
+            }
+            return '$' + Math.round(value).toLocaleString();
+        }
+
+        function formatDollars(value) {
+            return '$' + Math.round(value).toLocaleString();
+        }
+
+        function updateSuperDollarTable() {
+            const startBalEl = document.getElementById('initialBalancePct');
+            const targetBalEl = document.getElementById('targetBalancePct');
+            if (!startBalEl || !targetBalEl) return;
+
+            const startBal = parseFloat(startBalEl.value) || 0;
+            const targetBal = parseFloat(targetBalEl.value) || 0;
+
+            document.querySelectorAll('.minStart').forEach(function(cell) {
+                const rate = parseFloat(cell.dataset.rate) || 0;
+                cell.textContent = startBal > 0 ? formatDollars(startBal * rate / 100) : '--';
+            });
+
+            document.querySelectorAll('.minTarget').forEach(function(cell) {
+                const rate = parseFloat(cell.dataset.rate) || 0;
+                cell.textContent = targetBal > 0 ? formatDollars(targetBal * rate / 100) : '--';
+            });
+        }
+        
+        function runSimulation() {
+            const button = document.getElementById('runButton');
+            button.disabled = true;
+            button.textContent = 'Running Simulations...';
+            
+            setTimeout(function() {
+                let initialBalance, targetBalance, startingAge;
+                const usePercentageMode = currentMode === 'percentage';
+                
+                if (usePercentageMode) {
+                    initialBalance = parseFloat(document.getElementById('initialBalancePct').value);
+                    targetBalance = parseFloat(document.getElementById('targetBalancePct').value);
+                    startingAge = parseInt(document.getElementById('startingAge').value);
+                } else {
+                    initialBalance = parseFloat(document.getElementById('initialBalance').value);
+                    targetBalance = parseFloat(document.getElementById('targetBalance').value);
+                }
+                
+                const annualWithdrawal = usePercentageMode ? 0 : parseFloat(document.getElementById('annualWithdrawal').value);
+                const meanReturn = parseFloat(document.getElementById('meanReturn').value);
+                const stdDeviation = parseFloat(document.getElementById('stdDeviation').value);
+                const inflation = parseFloat(document.getElementById('inflation').value);
+                const years = parseInt(document.getElementById('years').value);
+                const numSimulations = parseInt(document.getElementById('numSimulations').value);
+                
+                const simulations = [];
+                const finalBalances = [];
+                let successCount = 0;
+                let failureYears = [];
+                
+                for (let sim = 0; sim < numSimulations; sim++) {
+                    let balance = initialBalance;
+                    const path = [];
+                    let failed = false;
+                    let failYear = null;
+                    
+                    for (let year = 0; year <= years; year++) {
+                        path.push(balance);
+                        
+                        if (year < years) {
+                            let currentWithdrawal;
+                            
+                            if (usePercentageMode) {
+                                const currentAge = startingAge + year;
+                                const minRate = getAustralianMinimumRate(currentAge);
+                                currentWithdrawal = balance * (minRate / 100);
+                            } else {
+                                if (year === 0) {
+                                    currentWithdrawal = annualWithdrawal;
+                                } else {
+                                    currentWithdrawal = annualWithdrawal * Math.pow(1 + inflation / 100, year);
+                                }
+                            }
+                            
+                            balance -= currentWithdrawal;
+                            
+                            if (balance < 0) {
+                                failed = true;
+                                failYear = year + 1;
+                                balance = 0;
+                                for (let i = year + 1; i <= years; i++) {
+                                    path.push(0);
+                                }
+                                break;
+                            }
+                            
+                            const model = document.getElementById('returnModel') ? document.getElementById('returnModel').value : 'arithmetic';
+                            const tDf = document.getElementById('tDf') ? parseFloat(document.getElementById('tDf').value) : 5;
+                            const returnRate = sampleReturnDecimal(meanReturn, stdDeviation, model, tDf);
+                            balance = balance * (1 + returnRate);
+                        }
+                    }
+                    
+                    simulations.push(path);
+                    finalBalances.push(balance);
+                    
+                    if (!failed && balance >= targetBalance) {
+                        successCount++;
+                    } else if (failed) {
+                        failureYears.push(failYear);
+                    }
+                }
+                
+                const percentileData = { p10: [], p25: [], p50: [], p75: [], p90: [] };
+                // Interpolated quantile helper (linear interpolation)
+                function getQuantile(sortedArr, q) {
+                    if (!sortedArr || sortedArr.length === 0) return 0;
+                    const n = sortedArr.length;
+                    const pos = (n - 1) * q;
+                    const base = Math.floor(pos);
+                    const rest = pos - base;
+                    if (base + 1 < n) {
+                        return sortedArr[base] + rest * (sortedArr[base + 1] - sortedArr[base]);
+                    }
+                    return sortedArr[base];
+                }
+                const successRateByYear = [];
+                
+                for (let year = 0; year <= years; year++) {
+                    const balancesAtYear = simulations.map(function(sim) { return sim[year]; }).sort(function(a, b) { return a - b; });
+                    const successfulAtYear = simulations.filter(function(sim) { return sim[year] > 0; }).length;
+                    const successRateAtYear = (successfulAtYear / numSimulations) * 100;
+                    successRateByYear.push(successRateAtYear);
+                    
+                    percentileData.p10.push(getQuantile(balancesAtYear, 0.10));
+                    percentileData.p25.push(getQuantile(balancesAtYear, 0.25));
+                    percentileData.p50.push(getQuantile(balancesAtYear, 0.50));
+                    percentileData.p75.push(getQuantile(balancesAtYear, 0.75));
+                    percentileData.p90.push(getQuantile(balancesAtYear, 0.90));
+                }
+                
+                const sortedFinalBalances = finalBalances.sort(function(a, b) { return a - b; });
+                const successRate = (successCount / numSimulations) * 100;
+                const medianFinal = sortedFinalBalances[Math.floor(sortedFinalBalances.length * 0.5)] || 0;
+                const p10Final = sortedFinalBalances[Math.floor(sortedFinalBalances.length * 0.1)] || 0;
+                const p90Final = sortedFinalBalances[Math.floor(sortedFinalBalances.length * 0.9)] || 0;
+                const failureRate = (failureYears.length / numSimulations) * 100;
+                const avgFailureYear = failureYears.length > 0 ? failureYears.reduce(function(a, b) { return a + b; }, 0) / failureYears.length : null;
+                
+                document.getElementById('placeholder').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                document.getElementById('successRate').textContent = successRate.toFixed(1) + '%';
+                document.getElementById('successDetail').textContent = 'End with >= ' + formatCurrency(targetBalance) + ' after ' + years + ' years';
+                document.getElementById('medianFinal').textContent = formatCurrency(medianFinal);
+                
+                const failureCard = document.getElementById('failureCard');
+                failureCard.className = 'stat-card ' + (failureRate > 10 ? 'failure' : 'warning');
+                document.getElementById('failureRate').textContent = failureRate.toFixed(1) + '%';
+                document.getElementById('failureDetail').textContent = avgFailureYear ? 'Avg at year ' + avgFailureYear.toFixed(0) : 'Balance depleted';
+                
+                document.getElementById('p10').textContent = formatCurrency(p10Final);
+                document.getElementById('p50').textContent = formatCurrency(medianFinal);
+                document.getElementById('p90').textContent = formatCurrency(p90Final);
+                
+                let interpretation = '';
+                if (successRate >= 90) {
+                    interpretation = '<p>Very High Success Rate (' + successRate.toFixed(0) + '%): Your withdrawal strategy appears quite safe.</p>';
+                } else if (successRate >= 75) {
+                    interpretation = '<p>Moderate Success Rate (' + successRate.toFixed(0) + '%): Your strategy works in most scenarios but there is notable risk.</p>';
+                } else {
+                    interpretation = '<p>Low Success Rate (' + successRate.toFixed(0) + '%): High risk of running out of money. Consider reducing withdrawals.</p>';
+                }
+                
+                if (failureRate > 5) {
+                    interpretation += '<p>In ' + failureRate.toFixed(1) + '% of scenarios, money ran out completely.</p>';
+                }
+                
+                interpretation += '<p>Range of outcomes: ' + formatCurrency(p10Final) + ' to ' + formatCurrency(p90Final) + ' depending on market sequence.</p>';
+                document.getElementById('interpretationText').innerHTML = interpretation;
+                
+                let technicalNotes = '';
+                technicalNotes += 'Returns modeled using a normal distribution (Box–Muller). Mean = ' + meanReturn + '%, Std Dev = ' + stdDeviation + '%.<br>';
+                technicalNotes += 'Withdrawals are taken at the <strong>start</strong> of each year; annual returns are applied <em>after</em> withdrawals.<br>';
+                technicalNotes += 'Percentile values use linear interpolation for quantiles (more accurate than simple indexing).<br>';
+                technicalNotes += 'Dollar displays are rounded for readability; internal calculations use full numeric precision.<br>';
+                technicalNotes += 'This model does not include taxes, account fees, or irregular withdrawals — use results as a guide only.<br>';
+
+                if (usePercentageMode) {
+                    technicalNotes += 'Percentage mode: each year withdrawal = balance at start × applicable rate.<br>';
+                    technicalNotes += 'Rates are editable in the table; the simulator enforces government minimums (cannot go below defaults).<br>';
+                    technicalNotes += 'Starting age ' + startingAge + ' uses a minimum rate of ' + getAustralianMinimumRate(startingAge) + '%.<br>';
+                } else {
+                    const finalWithdrawal = Math.round(annualWithdrawal * Math.pow(1 + inflation/100, years));
+                    technicalNotes += 'Fixed mode: starting withdrawal $' + annualWithdrawal.toLocaleString() + ' grows to $' + finalWithdrawal.toLocaleString() + ' by year ' + years + ' with inflation applied.<br>';
+                }
+
+                technicalNotes += 'Random returns are sampled per year; set Std Dev = 0 for deterministic checks. A deterministic test script is included at <strong>tests/deterministic_tests.js</strong>.<br>';
+                technicalNotes += 'Return models available: Arithmetic Normal (direct percent sampling), Lognormal (geometric) calibrated to match the entered arithmetic mean/variance, and Student-t (heavy tails).<br>';
+                technicalNotes += 'Yearly fees subtract percentage points from each year\'s return before compounding. Returns are clamped above -100% to avoid impossible losses.<br>';
+                technicalNotes += 'Lognormal sampling calibrates underlying log-parameters so that E[1+R] matches the entered mean and variance where possible; with Std Dev = 0, lognormal reduces to the arithmetic case.<br>';
+                technicalNotes += 'Choose the model that best reflects your assumptions — geometric/lognormal is generally more realistic for long horizons.';
+                
+                document.getElementById('technicalNotes').innerHTML = technicalNotes;
+                
+                const labels = Array.from({length: years + 1}, function(_, i) { return i; });
+                
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+                
+                const ctx = document.getElementById('chart').getContext('2d');
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: '90th', data: percentileData.p90, borderColor: 'rgba(34,197,94,0.5)', backgroundColor: 'rgba(134,239,172,0.3)', fill: '+1', pointRadius: 0, borderWidth: 1 },
+                            { label: '75th', data: percentileData.p75, borderColor: 'rgba(59,130,246,0.5)', backgroundColor: 'rgba(96,165,250,0.4)', fill: '+1', pointRadius: 0, borderWidth: 1 },
+                            { label: 'Median', data: percentileData.p50, borderColor: 'rgba(30,64,175,1)', backgroundColor: 'rgba(30,64,175,0)', fill: false, pointRadius: 0, borderWidth: 3 },
+                            { label: '25th', data: percentileData.p25, borderColor: 'rgba(59,130,246,0.5)', backgroundColor: 'rgba(255,255,255,1)', fill: '+1', pointRadius: 0, borderWidth: 1 },
+                            { label: '10th', data: percentileData.p10, borderColor: 'rgba(34,197,94,0.5)', backgroundColor: 'rgba(255,255,255,1)', fill: false, pointRadius: 0, borderWidth: 1 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 2,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { title: { display: true, text: 'Year' } },
+                            y: { title: { display: true, text: 'Balance' }, ticks: { callback: function(v) {
+        return `$${(v / 1_000_000).toFixed(1)}M`;
+    } } }
+                        }
+                    }
+                });
+                
+                if (successChartInstance) {
+                    successChartInstance.destroy();
+                }
+                
+                const successCtx = document.getElementById('successChart').getContext('2d');
+                successChartInstance = new Chart(successCtx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{ label: 'Success Rate', data: successRateByYear, borderColor: 'rgba(34,197,94,1)', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, pointRadius: 0, borderWidth: 3, tension: 0.1 }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 2.5,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { title: { display: true, text: 'Year' } },
+                            y: { 
+                                title: { display: true, text: 'Success Rate (%)' }, 
+                                min: 0, 
+                                max: 100, 
+                                ticks: { 
+                                    callback: function(value) { 
+                                        return value + '%'; 
+                                    } 
+                                } 
+                            }
+                        }
+                    }
+                });
+                
+                button.disabled = false;
+                button.textContent = 'Run ' + numSimulations.toLocaleString() + ' Simulations';
+            }, 100);
+        }
+        
+        document.getElementById('numSimulations').addEventListener('input', function(e) {
+            const num = parseInt(e.target.value) || 1000;
+            document.getElementById('runButton').textContent = 'Run ' + num.toLocaleString() + ' Simulations';
+        });
+        
+        function updateInflationDisplay() {
+            const inflation = parseFloat(document.getElementById('inflation').value) || 0;
+            const withdrawal = parseFloat(document.getElementById('annualWithdrawal').value) || 0;
+            const years = parseInt(document.getElementById('years').value) || 30;
+            
+            document.getElementById('inflationDisplay').textContent = inflation.toFixed(1);
+            document.getElementById('withdrawalDisplay').textContent = withdrawal.toLocaleString();
+            
+            const inflatedAmount = withdrawal * Math.pow(1 + inflation / 100, years);
+            document.getElementById('inflatedWithdrawalDisplay').textContent = Math.round(inflatedAmount).toLocaleString();
+        }
+        
+        document.getElementById('inflation').addEventListener('input', updateInflationDisplay);
+        document.getElementById('annualWithdrawal').addEventListener('input', updateInflationDisplay);
+        document.getElementById('years').addEventListener('input', updateInflationDisplay);
+        document.getElementById('initialBalancePct').addEventListener('input', updateSuperDollarTable);
+        document.getElementById('targetBalancePct').addEventListener('input', updateSuperDollarTable);
+        function updateModelDescription() {
+            const model = document.getElementById('returnModel').value;
+            const fee = parseFloat(document.getElementById('feePercent').value) || 0;
+            const tDf = parseFloat(document.getElementById('tDf').value) || 5;
+            const descEl = document.getElementById('modelDescription');
+            let txt = '';
+            if (model === 'arithmetic') {
+                txt = 'Arithmetic Normal: samples annual returns R ~ Normal(mean, sd). Returns are applied after withdrawals. Yearly fee: ' + fee + '%.';
+            } else if (model === 'lognormal') {
+                txt = 'Lognormal (geometric): models multiplicative returns with log-normal sampling calibrated to match the entered mean and variance where possible. Yearly fee: ' + fee + '%.';
+            } else if (model === 'studentt') {
+                txt = 'Student-t: heavy-tailed shocks with ' + tDf + ' degrees of freedom for stress testing. Yearly fee: ' + fee + '%.';
+            } else {
+                txt = 'Selected model: ' + model + '. Yearly fee: ' + fee + '%.';
+            }
+            descEl.textContent = txt;
+        }
+        const returnModelEl = document.getElementById('returnModel');
+        if (returnModelEl) {
+            returnModelEl.addEventListener('change', updateModelDescription);
+        }
+        document.getElementById('feePercent').addEventListener('input', updateModelDescription);
+        document.getElementById('tDf').addEventListener('input', updateModelDescription);
+        // Wire up editable rate inputs to update table values and simulation
+        document.querySelectorAll('.rateInput').forEach(function(input) {
+            // sync the dataset.rate on the row's minStart/minTarget cells when input changes
+            function syncRateToRow() {
+                const row = input.closest('tr');
+                if (!row) return;
+                let rateVal = parseFloat(input.value);
+                if (isNaN(rateVal)) rateVal = 0;
+                const minAllowed = parseFloat(input.min) || 0;
+                if (rateVal < minAllowed) {
+                    rateVal = minAllowed;
+                    input.value = rateVal;
+                }
+                const minStart = row.querySelector('.minStart');
+                const minTarget = row.querySelector('.minTarget');
+                if (minStart) minStart.dataset.rate = rateVal;
+                if (minTarget) minTarget.dataset.rate = rateVal;
+                updateSuperDollarTable();
+            }
+
+            input.addEventListener('input', syncRateToRow);
+            // initialize dataset on load
+            syncRateToRow();
+        });
+        
+        updateInflationDisplay();
+        updateSuperDollarTable();
+        // Open on Percentage Withdrawal by default
+        switchMode('percentage');
+    </script>
+</body>
+</html>
