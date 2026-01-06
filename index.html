@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Retirement Tools</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body{
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 32px;
+      color: #1e293b;
+    }
+
+    .container{
+      max-width: 980px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 44px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.30);
+    }
+
+    h1{
+      font-family: 'Poppins', system-ui, sans-serif;
+      font-size: 2.4rem;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle{
+      color: #475569;
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      max-width: 75ch;
+    }
+
+    .note{
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 32px;
+      color: #334155;
+      font-size: 0.95rem;
+      line-height: 1.65;
+    }
+
+    .tools-section{
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    .grid{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    .card{
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 22px;
+    }
+
+    .card h2{
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+
+    .card p{
+      color: #475569;
+      line-height: 1.65;
+      margin-bottom: 16px;
+      font-size: 0.98rem;
+      max-width: 80ch;
+    }
+
+    .pill{
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    .btn{
+      display: inline-block;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.40);
+    }
+
+    .placeholder{
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    footer{
+      margin-top: 32px;
+      padding-top: 18px;
+      border-top: 1px solid #e2e8f0;
+      color: #64748b;
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+
+    footer strong{ color: #334155; }
+
+    @media (min-width: 860px){
+      .grid{ grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <h1>Retirement Tools</h1>
+
+    <p class="subtitle">
+      A small collection of exploratory calculators I built for my own retirement modelling and scenario testing, shared in case they’re useful to others.
+      Where relevant, these tools are designed for Australians and reflect Australian superannuation settings and rules, with assumptions clearly visible and adjustable.
+    </p>
+
+    <div class="note">
+      These tools help you explore assumptions and see how different drawdown choices behave under uncertainty.
+      They are not advice tools, and results may be inaccurate, incomplete, or wrong.
+    </div>
+
+    <section class="tools-section">
+      <div class="grid">
+        <div class="card">
+          <span class="pill">AU-focused</span>
+          <h2>Monte Carlo Retirement Simulator</h2>
+          <p>
+            Explores retirement drawdowns across thousands of market scenarios. Includes an Australian mode with adjustable superannuation minimum drawdown rules,
+            alongside simple percentage based withdrawal modelling.
+          </p>
+          <a class="btn" href="monte_carloSW.html">Open simulator →</a>
+        </div>
+
+        <div class="card">
+          <h2>More tools soon</h2>
+          <p>
+            This is where the next weirdly useful calculator will land. I’m keeping the site simple:
+            just static HTML, readable assumptions, and quick iterations.
+          </p>
+          <span class="placeholder">(Placeholder)</span>
+        </div>
+      </div>
+    </section>
+
+ <footer>
+  <strong>Disclaimer:</strong> This site is provided for general information and personal exploration only.
+  I am not a financial planner and this is not financial advice. Use at your own discretion.
+  <br><br>
+  Built by Sarah Waterson for personal exploration and shared openly.
+</footer>
+
+  </main>
+</body>
+</html>
